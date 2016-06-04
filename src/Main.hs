@@ -83,7 +83,7 @@ instance (KnownBackend b, HasServer sublayout config) => HasServer (Files b :> s
 --------------------------------------------------------------------------------
 
 type API = "convert" :> FilesTmp :> Post '[PlainText] ()
-         :<|> Raw
+      :<|> "static"  :> Raw
 
 handleFiles :: MultiPartDataT Mem -> IO ()
 handleFiles multipart = void $ multipart $ \(params,files) -> do
@@ -107,7 +107,7 @@ convertHandler multipart = do
   
 server :: Server API
 server =    convertHandler
-       :<|> serveDirectory "."
+       :<|> serveDirectory "/out"
      
 -- Proxy for connecting servant
 -- with Wai
