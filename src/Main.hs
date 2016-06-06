@@ -45,6 +45,8 @@ import qualified Text.Blaze.Html
 import           Text.Blaze.Html.Renderer.Utf8
 import           Control.Monad.Trans.Resource (runResourceT,withInternalState)
 
+import           Pandoc
+
 --------------------------------------------------------------------------------
 
 data Mem
@@ -91,7 +93,9 @@ handleFiles multipart = void $ multipart $ \(params, files) -> do
   putStrLn "----------------------------------"
   putStrLn "Files:\n"
   mapM_ ppFile files
-  mapM_ writeFileTmp files 
+  mapM_ writeFileTmp files
+  mapM_ convert files
+  -- TODO: build return link
   putStrLn "\nParams:"
   print params
   putStrLn "----------------------------------"
@@ -111,7 +115,21 @@ handleFiles multipart = void $ multipart $ \(params, files) -> do
       let filepath = "static/out/"++ (B.unpack $ fileName fileinfo) 
       BLC.writeFile filepath (fileContent fileinfo)
       
-
+    convert :: File ByteString -> IO ByteString
+    convert fl@(name', fileinfo) = do
+      pdfEE <- convertHtmlToPdf (BLC.unpack $ fileContent fileinfo) ""
+      case pdfEE of
+        Left  err  ->
+          do
+            putStrLn $ ("PDF creation failed:\n" ++ (BLC.unpack err))
+            return $ ""
+        Right pdfE ->
+          case pdfE of
+            Left  err ->
+              do
+                putStrLn $ ("PDF creation failed:\n" ++ (BLC.unpack err))
+                return $ ""
+            Right pdf -> return $ pdf  
     
 
 convertHandler :: MultiPartDataT Mem -> ExceptT ServantErr IO ()
