@@ -85,21 +85,34 @@ instance (KnownBackend b, HasServer sublayout config) => HasServer (Files b :> s
 type API = "convert" :> FilesMem :> Post '[JSON] ()
       :<|> "static"  :> Raw
 
+
 handleFiles :: MultiPartDataT Mem -> IO ()
-handleFiles multipart = void $ multipart $ \(params,files) -> do
-  putStrLn "start"
+handleFiles multipart = void $ multipart $ \(params, files) -> do
+  putStrLn "----------------------------------"
+  putStrLn "Files:\n"
   mapM_ ppFile files
+  mapM_ writeFileTmp files 
+  putStrLn "\nParams:"
   print params
-  putStrLn "end"
-  return (params,files)
+  putStrLn "----------------------------------"
+  
+  return (params, files)
   where
+    
     ppFile :: File ByteString -> IO ()
-    ppFile (name',fileinfo) = do
-      putStrLn $ "Input name: "   <> B.unpack name'
-      putStrLn $ "File name: "    <> B.unpack (fileName fileinfo)
+    ppFile fl@(name', fileinfo) = do
+      putStrLn $ "Input name:   " <> B.unpack name'
+      putStrLn $ "File name:    " <> B.unpack (fileName fileinfo)
       putStrLn $ "Content type: " <> B.unpack (fileContentType fileinfo)
-      putStrLn $ BLC.unpack (fileContent fileinfo)
-      putStrLn "---------------------------------"
+      putStrLn $ "Load:         \n" ++ BLC.unpack (fileContent fileinfo)
+
+    writeFileTmp :: File ByteString -> IO ()
+    writeFileTmp fl@(name', fileinfo) = do
+      let filepath = "static/out/"++ (B.unpack $ fileName fileinfo) 
+      BLC.writeFile filepath (fileContent fileinfo)
+      
+
+    
 
 convertHandler :: MultiPartDataT Mem -> ExceptT ServantErr IO ()
 convertHandler multipart = do
