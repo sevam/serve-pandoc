@@ -82,7 +82,7 @@ instance (KnownBackend b, HasServer sublayout config) => HasServer (Files b :> s
 
 --------------------------------------------------------------------------------
 
-type API = "convert" :> FilesTmp :> Post '[PlainText] ()
+type API = "convert" :> FilesMem :> Post '[JSON] ()
       :<|> "static"  :> Raw
 
 handleFiles :: MultiPartDataT Mem -> IO ()
